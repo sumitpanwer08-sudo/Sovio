@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-dark: #0a0f0d;
+    --mist-white: rgba(255, 255, 255, 0.85);
+    --pine-green: #2d3a30;
+    --wood-brown: #3d2b1f;
+    --accent-gold: #c5a059;
+    --glass: rgba(20, 26, 22, 0.65);
+    --glass-border: rgba(255, 255, 255, 0.12);
+  }
+
+  body {
+    background-color: var(--bg-dark);
+    color: var(--mist-white);
+    font-family: 'Cormorant Garamond', serif;
+    overflow-x: hidden;
+  }
+}
+
+.font-garamond {
+  font-family: 'Cormorant Garamond', serif;
+}
+
+.font-mono-space {
+  font-family: 'Space Mono', monospace;
+}
+
+.font-montserrat {
+  font-family: 'Montserrat', sans-serif;
+}
+
+@keyframes drift {
+  from { background-position: 0 0; }
+  to { background-position: 1000px 0; }
+}
+
+.animate-mist {
+  animation: drift 60s linear infinite;
+}
+
+@keyframes pulse-slow {
+  0% { opacity: 0.4; }
+  50% { opacity: 1; }
+  100% { opacity: 0.4; }
+}
+
+.animate-pulse-light {
+  animation: pulse-slow 2s infinite;
+}
+
+@keyframes fall {
+  to { transform: translateY(100vh); opacity: 0; }
+}
+
+.snow-particle {
+  position: fixed;
+  background: white;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(10, 15, 13, 0.8);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(197, 160, 89, 0.3);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(197, 160, 89, 0.6);
+}

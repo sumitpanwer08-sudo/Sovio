@@ -1,0 +1,6 @@
+{
+  "name": "SOVIO",
+  "description": "The Sound of Mountains & Mist - Vintage Pahadi radio and mountain studio with auto Mood Scheduler (local time circadian lighting and genre match), synchronized lyrics & sing-along karaoke, multi-singer playlists (Arijit Singh, Mohit Chauhan, Jubin Nautiyal, KK, Shreya Ghoshal, Kishore Kumar, Pahadi folk), ambient soundscapes mixer, and HRTC bus memories.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

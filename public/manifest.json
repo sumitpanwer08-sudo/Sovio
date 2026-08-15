@@ -1,0 +1,24 @@
+{
+  "name": "SOVIO - The Sound of Mountains & Mist",
+  "short_name": "SOVIO",
+  "description": "Vintage Mountain Radio, JioSaavn Cloud Stream, Arijit Singh & Mohit Chauhan Melodies",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d1310",
+  "theme_color": "#0d1310",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
