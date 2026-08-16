@@ -36,9 +36,10 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Re-create Android Platform & Sync
+      - name: Initialize Capacitor & Add Android Platform
         run: |
           rm -rf android
+          npx --yes @capacitor/cli init "Sovio" "com.sovio.app" --web-dir "dist"
           npx --yes @capacitor/cli add android
           npx --yes @capacitor/cli sync android
 
