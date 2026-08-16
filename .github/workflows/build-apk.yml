@@ -36,13 +36,15 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Capacitor Sync
-        run: npx --yes @capacitor/cli sync android
+      - name: Re-create Android Platform & Sync
+        run: |
+          rm -rf android
+          npx --yes @capacitor/cli add android
+          npx --yes @capacitor/cli sync android
 
-      - name: Setup Gradle Wrapper & Build APK
+      - name: Build Android APK
         run: |
           cd android
-          gradle wrapper
           chmod +x gradlew
           ./gradlew assembleDebug
 
