@@ -40,6 +40,38 @@ class JioSaavnRepository {
         }
     }
 
+    private fun normalizeTitle(title: String): String {
+        return title.lowercase()
+            .replace(Regex("\\(.*?\\)"), "")
+            .replace(Regex("\\[.*?\\]"), "")
+            .replace(Regex("(?i)-?\\s*(from|audio|lyrics|official|video|soundtrack|lo-fi|lofi|remix|version|reprise|acoustic).*"), "")
+            .replace(Regex("[^a-z0-9]"), "")
+            .trim()
+    }
+
+    private fun deduplicateSongs(songs: List<SongItem>): List<SongItem> {
+        val seenIds = mutableSetOf<String>()
+        val seenKeys = mutableSetOf<String>()
+        val uniqueList = mutableListOf<SongItem>()
+
+        for (song in songs) {
+            val idKey = song.id.lowercase().trim()
+            if (idKey.isNotEmpty() && seenIds.contains(idKey)) continue
+
+            val cleanTitle = normalizeTitle(song.title)
+            val primaryArtist = song.artist.split(",", "/", "&", "|").firstOrNull()?.lowercase()?.replace(Regex("[^a-z0-9]"), "") ?: ""
+            val compositeKey = "${cleanTitle}_$primaryArtist"
+
+            if (cleanTitle.isNotEmpty() && seenKeys.contains(compositeKey)) continue
+
+            if (idKey.isNotEmpty()) seenIds.add(idKey)
+            if (cleanTitle.isNotEmpty()) seenKeys.add(compositeKey)
+
+            uniqueList.add(song)
+        }
+        return uniqueList
+    }
+
     private fun parseJioSaavnResponse(jsonStr: String): List<SongItem> {
         val resultList = mutableListOf<SongItem>()
         try {
@@ -85,7 +117,7 @@ class JioSaavnRepository {
         } catch (e: Exception) {
             e.printStackTrace()
         }
-        return resultList
+        return deduplicateSongs(resultList)
     }
 
     private fun decryptUrl(encryptedBase64: String): String? {

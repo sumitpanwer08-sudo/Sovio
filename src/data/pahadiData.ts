@@ -934,36 +934,64 @@ export const RADIO_STATIONS: RadioStation[] = [
     ],
     defaultQuotes: [
       '"JioSaavn HD Cloud — Stream any song across 80M+ tracks with crystal-clear 320kbps fidelity."',
-      '"Arijit Singh, Mohit Chauhan, Bollywood, and Mountain melodies streaming directly."',
-      '"Pure mountain sound, uninterrupted sukoon."'
+      '"High quality direct audio streams, uninterrupted sukoon."',
+      '"Pure mountain soundscapes and crystal clear melodies."'
     ]
   },
   {
-    id: 'station-arijit-full',
-    name: '🎙️ Arijit Singh Radio',
-    tagline: 'Soulful Bollywood & Mountain Melodies',
-    frequency: '94.3 FM',
-    playlistId: 'PLjSDelb8LaOdXdrTJ8_3GyCZPJaiMpXty',
-    songs: ARIJIT_SINGH_FULL_PLAYLIST,
+    id: 'station-jiosaavn-trending',
+    name: '🔥 JioSaavn Trending Hits',
+    tagline: 'Latest Bollywood, Chartbusters & Viral Hits',
+    frequency: '98.3 FM',
+    playlistId: 'jiosaavn-trending-bollywood',
+    songs: [
+      {
+        id: 'jiosaavn-sample-2',
+        title: 'O Maahi (From "Dunki")',
+        artist: 'Arijit Singh, Pritam',
+        movie: 'Dunki',
+        year: '2024',
+        category: 'romantic',
+        duration: '3:53',
+        videoId: '',
+        imageUrl: 'https://c.saavncdn.com/024/O-Maahi-From-Dunki-Hindi-2023-20231211171007-500x500.jpg',
+        audioFileUrl: 'https://aac.saavncdn.com/024/2f8f6dfc00ff8eeb13bc75510619a9db_320.mp4',
+        source: 'jiosaavn',
+        custom: true
+      }
+    ],
     defaultQuotes: [
-      '"Kyunki tum hi ho, ab tum hi ho, zindagi ab tum hi ho..."',
-      '"Kesariya tera ishq hai piya, rang jaaun jo main haath lagaun..."',
-      '"Accha chalta hoon, duaon mein yaad rakhna..."',
-      '"Ilahi mera jee aaye aaye... safar ki dhoop aur hawayein."'
+      '"Top chartbusters and viral melodies streaming live on JioSaavn."',
+      '"Chai, pahadi shaam aur JioSaavn ke sur."',
+      '"Listen to high-definition Bollywood & mountain tunes."'
     ]
   },
   {
-    id: 'station-mohit-roadtrip',
-    name: '🎸 Mohit Chauhan Radio',
-    tagline: 'Rockstar, Matargashti & Silk Route Melodies',
-    frequency: '96.5 FM',
-    playlistId: 'PLjSDelb8LaOdXdrTJ8_3GyCZPJaiMpXty',
-    songs: MOHIT_CHAUHAN_PLAYLIST,
+    id: 'station-jiosaavn-pahadi',
+    name: '🏔️ JioSaavn Pahadi Sukoon',
+    tagline: 'Mountain Acoustic, Garhwali, Kumaoni & Chill',
+    frequency: '102.4 FM',
+    playlistId: 'jiosaavn-pahadi-sukoon',
+    songs: [
+      {
+        id: 'jiosaavn-sample-3',
+        title: 'Bedu Pako Baro Masa',
+        artist: 'Pahadi Folk Melody',
+        movie: 'Mountain Roots',
+        year: '2024',
+        category: 'folk',
+        duration: '3:30',
+        videoId: '',
+        imageUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=500&auto=format&fit=crop&q=80',
+        audioFileUrl: 'https://aac.saavncdn.com/712/79c9eeadcf7a8d5db8890cb5b4588e36_320.mp4',
+        source: 'jiosaavn',
+        custom: true
+      }
+    ],
     defaultQuotes: [
-      '"Phir se ud chala... ud ke chhora in hawaon ko."',
-      '"Tum se hi din hota hai, surmayi shaam aati hai..."',
-      '"Dooba dooba rehta hoon yaadon mein teri..."',
-      '"Goonja sa koi iktara, iktara... dil ki galiyon mein."'
+      '"Lost in the winding mountain roads listening to soulful mountain notes."',
+      '"Cold mountain winds, pine trees, and pure acoustic sounds."',
+      '"The heart of the Himalayas, playing exclusively on JioSaavn."'
     ]
   }
 ];

@@ -25,7 +25,7 @@ import {
 } from './types';
 import { soundscapeEngine } from './services/soundscapeEngine';
 import { getStoredToken, saveMemoryToDrive } from './services/driveService';
-import { getJioSaavnTrending, getJioSaavnStreamCandidates } from './services/jiosaavnService';
+import { getJioSaavnTrending, getJioSaavnStreamCandidates, deduplicateSongs } from './services/jiosaavnService';
 import { webAudioVisualizerService } from './services/webAudioVisualizer';
 import {
   startBackgroundAudioKeepAlive,
@@ -37,16 +37,16 @@ import {
 export function App() {
   // Main radio player state
   const [currentStation, setCurrentStation] = useState<RadioStation>(RADIO_STATIONS[0]);
-  const [currentPlaylist, setCurrentPlaylist] = useState<SongItem[]>(ALL_SONGS_CATALOG);
-  const [currentSong, setCurrentSong] = useState<SongItem | null>(ALL_SONGS_CATALOG[0]);
+  const [currentPlaylist, setCurrentPlaylist] = useState<SongItem[]>(RADIO_STATIONS[0].songs || ALL_SONGS_CATALOG);
+  const [currentSong, setCurrentSong] = useState<SongItem | null>(RADIO_STATIONS[0].songs[0] || ALL_SONGS_CATALOG[0]);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [volume, setVolume] = useState<number>(1);
   const [keepScreenAwake, setKeepScreenAwake] = useState<boolean>(false);
   const [currentQuote, setCurrentQuote] = useState<string>(PAHADI_QUOTES[0]);
   const [quoteIndex, setQuoteIndex] = useState<number>(0);
   const [trackInfo, setTrackInfo] = useState<TrackInfo>({
-    title: `${ALL_SONGS_CATALOG[0].title} • ${ALL_SONGS_CATALOG[0].artist || 'Arijit Singh'}`,
-    author: ALL_SONGS_CATALOG[0].artist || 'Arijit Singh'
+    title: `${RADIO_STATIONS[0].songs[0]?.title || 'JioSaavn Stream'} • ${RADIO_STATIONS[0].songs[0]?.artist || 'JioSaavn HD'}`,
+    author: RADIO_STATIONS[0].songs[0]?.artist || 'JioSaavn HD'
   });
   const [progressPercent, setProgressPercent] = useState<number>(0);
   const [currentTime, setCurrentTime] = useState<number>(0);
@@ -697,13 +697,9 @@ export function App() {
     }
   };
 
-  // Add song to active queue
+  // Add song to active queue (No duplicates)
   const handleAddToQueue = (song: SongItem) => {
-    setCurrentPlaylist((prev) => {
-      const exists = prev.find((s) => s.id === song.id);
-      if (exists) return prev;
-      return [song, ...prev];
-    });
+    setCurrentPlaylist((prev) => deduplicateSongs([song, ...prev]));
     soundscapeEngine.playTuningStatic();
   };
 
@@ -738,17 +734,23 @@ export function App() {
       setCurrentQuote(st.defaultQuotes[0]);
     }
 
-    if (st.id === 'station-jiosaavn-live') {
+    if (st.id.startsWith('station-jiosaavn')) {
+      let category = 'bollywood';
+      if (st.id === 'station-jiosaavn-live') category = 'arijit';
+      else if (st.id === 'station-jiosaavn-trending') category = 'bollywood';
+      else if (st.id === 'station-jiosaavn-pahadi') category = 'pahadi';
+
       try {
-        const saavnTracks = await getJioSaavnTrending('arijit');
+        const saavnTracks = await getJioSaavnTrending(category);
         if (saavnTracks && saavnTracks.length > 0) {
+          const uniqueTracks = deduplicateSongs(saavnTracks);
           const updatedStation: RadioStation = {
             ...st,
-            songs: saavnTracks
+            songs: uniqueTracks
           };
           setCurrentStation(updatedStation);
-          setCurrentPlaylist(saavnTracks);
-          handlePlaySong(saavnTracks[0]);
+          setCurrentPlaylist(uniqueTracks);
+          handlePlaySong(uniqueTracks[0]);
           return;
         }
       } catch (err: any) {
@@ -757,8 +759,9 @@ export function App() {
     }
 
     if (st.songs && st.songs.length > 0) {
-      setCurrentPlaylist(st.songs);
-      handlePlaySong(st.songs[0]);
+      const uniqueStationSongs = deduplicateSongs(st.songs);
+      setCurrentPlaylist(uniqueStationSongs);
+      handlePlaySong(uniqueStationSongs[0]);
     } else if (playerRef.current && playerRef.current.loadPlaylist) {
       try {
         playerRef.current.loadPlaylist({

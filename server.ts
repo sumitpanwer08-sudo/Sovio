@@ -40,6 +40,49 @@ function cleanJioSaavnText(str: string): string {
     .trim();
 }
 
+// Normalize title to catch duplicate variations
+function normalizeTitle(title: string): string {
+  if (!title) return "";
+  return title
+    .toLowerCase()
+    .replace(/\(.*?\)/g, "")
+    .replace(/\[.*?\]/g, "")
+    .replace(/-?\s*(from|audio|lyrics|official|video|soundtrack|lo-fi|lofi|remix|version|reprise|acoustic).*/gi, "")
+    .replace(/[^a-z0-9\u0900-\u097F]/gi, "")
+    .trim();
+}
+
+function deduplicateSongsList(songs: any[]): any[] {
+  if (!Array.isArray(songs)) return [];
+  const seenIds = new Set<string>();
+  const seenTitles = new Set<string>();
+  const uniqueList: any[] = [];
+
+  for (const song of songs) {
+    if (!song || !song.title) continue;
+
+    const idKey = String(song.id || "").trim().toLowerCase();
+    if (idKey && seenIds.has(idKey)) continue;
+
+    const cleanTitle = normalizeTitle(song.title);
+    const primaryArtist = String(song.artist || "")
+      .split(/[,/&|]/)[0]
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "");
+
+    const key = `${cleanTitle}__${primaryArtist}`;
+    if (cleanTitle && seenTitles.has(key)) continue;
+
+    if (idKey) seenIds.add(idKey);
+    if (cleanTitle) seenTitles.add(key);
+
+    uniqueList.push(song);
+  }
+
+  return uniqueList;
+}
+
 function formatJioSaavnSong(raw: any) {
   const rawUrl = decryptJioSaavnMediaUrl(raw.encrypted_media_url);
   // Get 320kbps or fallback 160kbps stream URL
@@ -112,10 +155,11 @@ async function startServer() {
       const data = await resp.json();
       const rawSongs = data.results || [];
       const formatted = rawSongs.map(formatJioSaavnSong).filter((s: any) => Boolean(s.audioFileUrl));
+      const uniqueResults = deduplicateSongsList(formatted);
 
       res.json({
-        results: formatted,
-        total: data.total || formatted.length,
+        results: uniqueResults,
+        total: uniqueResults.length,
         query
       });
     } catch (err: any) {
@@ -219,8 +263,9 @@ async function startServer() {
       const data = await resp.json();
       const rawSongs = data.results || [];
       const formatted = rawSongs.map(formatJioSaavnSong).filter((s: any) => Boolean(s.audioFileUrl));
+      const uniqueResults = deduplicateSongsList(formatted);
 
-      res.json({ results: formatted, category });
+      res.json({ results: uniqueResults, category });
     } catch (err: any) {
       console.error("JioSaavn trending error:", err?.message || String(err));
       res.status(500).json({ error: "Failed to fetch JioSaavn trending", results: [] });

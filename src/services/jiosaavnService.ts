@@ -38,6 +38,57 @@ export function cleanSaavnString(str: string): string {
 }
 
 /**
+ * Normalizes song title to eliminate minor variations (e.g., "(From ...)", "(Audio)", "Remix", "Lyrical")
+ */
+export function normalizeSongTitle(title: string): string {
+  if (!title) return '';
+  return title
+    .toLowerCase()
+    .replace(/\(.*?\)/g, '')
+    .replace(/\[.*?\]/g, '')
+    .replace(/-?\s*(from|audio|lyrics|official|video|soundtrack|lo-fi|lofi|remix|version|reprise|acoustic).*/gi, '')
+    .replace(/[^a-z0-9\u0900-\u097F]/gi, '')
+    .trim();
+}
+
+/**
+ * Ensures absolutely no duplicate songs appear in any list (keeps only 1 unique song)
+ */
+export function deduplicateSongs(songs: SongItem[]): SongItem[] {
+  if (!Array.isArray(songs)) return [];
+  const seenIds = new Set<string>();
+  const seenKeys = new Set<string>();
+  const uniqueList: SongItem[] = [];
+
+  for (const song of songs) {
+    if (!song || !song.title) continue;
+
+    const idKey = String(song.id || '').trim().toLowerCase();
+    if (idKey && seenIds.has(idKey)) continue;
+
+    const cleanTitle = normalizeSongTitle(song.title);
+    const primaryArtist = String(song.artist || '')
+      .split(/[,/&|]/)[0]
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '');
+
+    const compositeKey = `${cleanTitle}__${primaryArtist}`;
+
+    if (cleanTitle && seenKeys.has(compositeKey)) {
+      continue;
+    }
+
+    if (idKey) seenIds.add(idKey);
+    if (cleanTitle) seenKeys.add(compositeKey);
+
+    uniqueList.push(song);
+  }
+
+  return uniqueList;
+}
+
+/**
  * Searches JioSaavn catalog (80M+ songs)
  */
 export async function searchJioSaavnSongs(
@@ -55,7 +106,7 @@ export async function searchJioSaavnSongs(
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data.results) && data.results.length > 0) {
-        return data.results;
+        return deduplicateSongs(data.results);
       }
     }
   } catch (err: any) {
@@ -71,7 +122,7 @@ export async function searchJioSaavnSongs(
     if (resp.ok) {
       const data = await resp.json();
       const rawSongs = data.results || [];
-      return rawSongs
+      const parsed = rawSongs
         .map((raw: any) => {
           const rawUrl = decryptClientJioSaavnUrl(raw.encrypted_media_url);
           const highQualityUrl = rawUrl
@@ -112,6 +163,8 @@ export async function searchJioSaavnSongs(
           };
         })
         .filter((s: SongItem) => Boolean(s.audioFileUrl));
+
+      return deduplicateSongs(parsed);
     }
   } catch (err: any) {
     console.warn('JioSaavn direct client fallback note:', err?.message || String(err));
@@ -129,7 +182,7 @@ export async function getJioSaavnTrending(category: string = 'pahadi'): Promise<
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data.results) && data.results.length > 0) {
-        return data.results;
+        return deduplicateSongs(data.results);
       }
     }
   } catch (err: any) {

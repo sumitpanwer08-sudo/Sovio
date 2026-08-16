@@ -30,7 +30,7 @@ import {
   BookmarkPlus
 } from 'lucide-react';
 import { soundscapeEngine } from '../services/soundscapeEngine';
-import { searchJioSaavnSongs, getJioSaavnTrending } from '../services/jiosaavnService';
+import { searchJioSaavnSongs, getJioSaavnTrending, deduplicateSongs } from '../services/jiosaavnService';
 import { downloadSongForOffline, isSongDownloaded } from '../services/offlineStorageService';
 
 interface SongSearchModalProps {
@@ -123,7 +123,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
     setJioSaavnLoading(true);
     try {
       const tracks = await getJioSaavnTrending(genreKey);
-      setJioSaavnTracks(tracks);
+      setJioSaavnTracks(deduplicateSongs(tracks));
     } catch (err: any) {
       console.warn('JioSaavn category fetch note:', err?.message || String(err));
     } finally {
@@ -143,7 +143,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
       setJioSaavnLoading(true);
       try {
         const results = await searchJioSaavnSongs(searchQuery.trim(), 1, 30);
-        setJioSaavnTracks(results);
+        setJioSaavnTracks(deduplicateSongs(results));
       } catch (err: any) {
         console.warn('JioSaavn search error:', err?.message || String(err));
       } finally {
@@ -154,22 +154,22 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
     return () => clearTimeout(timer);
   }, [searchQuery, selectedJioSaavnGenre, activeTab]);
 
-  // Active base song pool depending on tab
+  // Active base song pool depending on tab (Strictly deduplicated)
   const activePlaylist = useMemo(() => {
     if (activeTab === 'arijit') {
-      return ARIJIT_SINGH_FULL_PLAYLIST;
+      return deduplicateSongs(ARIJIT_SINGH_FULL_PLAYLIST);
     }
     if (activeTab === 'mohit') {
-      return MOHIT_CHAUHAN_PLAYLIST;
+      return deduplicateSongs(MOHIT_CHAUHAN_PLAYLIST);
     }
-    return [...customSongs, ...ALL_SONGS_CATALOG];
+    return deduplicateSongs([...customSongs, ...ALL_SONGS_CATALOG]);
   }, [activeTab, customSongs]);
 
-  // Filter songs for current tab
+  // Filter songs for current tab (Strictly deduplicated)
   const filteredSongs = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     if (!q) return activePlaylist;
-    return activePlaylist.filter((song) => {
+    const filtered = activePlaylist.filter((song) => {
       return (
         song.title.toLowerCase().includes(q) ||
         (song.artist && song.artist.toLowerCase().includes(q)) ||
@@ -177,6 +177,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
         (song.category && song.category.toLowerCase().includes(q))
       );
     });
+    return deduplicateSongs(filtered);
   }, [activePlaylist, searchQuery]);
 
   // Extract YouTube video ID from various formats
