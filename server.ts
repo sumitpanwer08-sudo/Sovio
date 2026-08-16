@@ -235,6 +235,65 @@ async function startServer() {
     }
   });
 
+  // --- API ROUTE: Direct Audio Download Proxy (Forces File Download to Device) ---
+  app.get("/api/download", async (req, res) => {
+    try {
+      const audioUrl = String(req.query.url || "").trim();
+      let filename = String(req.query.filename || "Sovio_Mountain_Song").trim();
+
+      if (!audioUrl || !audioUrl.startsWith("http")) {
+        return res.status(400).send("Invalid audio URL");
+      }
+
+      // Sanitize filename
+      filename = filename.replace(/[^a-zA-Z0-9_\-\.\s]/g, "").trim();
+      if (!filename.endsWith(".m4a") && !filename.endsWith(".mp3")) {
+        filename += ".m4a";
+      }
+
+      const headers: Record<string, string> = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Referer": "https://www.jiosaavn.com/"
+      };
+
+      const response = await fetch(audioUrl, { headers });
+
+      if (!response.ok) {
+        return res.status(response.status).send("Failed to fetch audio for download");
+      }
+
+      const contentType = response.headers.get("content-type") || "audio/mp4";
+      const contentLength = response.headers.get("content-length");
+
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(filename)}"`);
+
+      if (contentLength) {
+        res.setHeader("Content-Length", contentLength);
+      }
+
+      if (response.body) {
+        const reader = response.body.getReader();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (!res.writableEnded) {
+            res.write(Buffer.from(value));
+          }
+        }
+        if (!res.writableEnded) res.end();
+      } else {
+        res.end();
+      }
+    } catch (err: any) {
+      console.error("Audio download error:", err?.message || String(err));
+      if (!res.headersSent) {
+        res.status(500).send("Failed to process audio download");
+      }
+    }
+  });
+
   // --- API ROUTE: JioSaavn Curated Trending & Categories ---
   app.get("/api/jiosaavn/trending", async (req, res) => {
     try {

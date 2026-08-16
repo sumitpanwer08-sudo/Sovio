@@ -25,7 +25,11 @@ import {
   Activity,
   BarChart3,
   Waves,
-  Gauge
+  Gauge,
+  Download,
+  CheckCircle2,
+  HardDrive,
+  Loader2
 } from 'lucide-react';
 import { AtmosphereMode, TrackInfo, SongItem } from '../types';
 import { MountainWaveVisualizer } from './MountainWaveVisualizer';
@@ -56,6 +60,10 @@ interface PlayerBarProps {
   onOpenSearch?: () => void;
   onOpenLyrics?: () => void;
   onOpenMoodScheduler?: () => void;
+  onOpenDownloads?: () => void;
+  onDownloadCurrentSong?: () => void;
+  isDownloadingCurrent?: boolean;
+  isCurrentDownloaded?: boolean;
   atmosphere?: AtmosphereMode;
   isAutoSync?: boolean;
 }
@@ -84,6 +92,10 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
   onOpenSearch,
   onOpenLyrics,
   onOpenMoodScheduler,
+  onOpenDownloads,
+  onDownloadCurrentSong,
+  isDownloadingCurrent = false,
+  isCurrentDownloaded = false,
   atmosphere = 'mist',
   isAutoSync = true
 }) => {
@@ -472,6 +484,48 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
               Drive Memory
             </span>
           </button>
+
+          {/* Direct Song Download Button */}
+          {onDownloadCurrentSong && (
+            <button
+              onClick={() => {
+                soundscapeEngine.playButtonClick();
+                onDownloadCurrentSong();
+              }}
+              disabled={isDownloadingCurrent}
+              className={`p-2 rounded-full transition cursor-pointer relative group border ${
+                isCurrentDownloaded
+                  ? 'text-teal-300 bg-teal-500/20 border-teal-400/50 shadow-[0_0_10px_rgba(45,212,191,0.3)]'
+                  : 'text-teal-400 hover:text-teal-200 bg-teal-500/10 hover:bg-teal-500/25 border-teal-500/30'
+              }`}
+              title="Download Song (Save to Offline Library & Phone Storage)"
+            >
+              {isDownloadingCurrent ? (
+                <Loader2 className="w-4 h-4 animate-spin text-teal-400" />
+              ) : isCurrentDownloaded ? (
+                <CheckCircle2 className="w-4 h-4 text-teal-300" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black/90 text-[9px] font-mono-space px-2 py-0.5 rounded border border-teal-500/30 text-teal-300 opacity-0 group-hover:opacity-100 transition whitespace-nowrap pointer-events-none shadow-lg z-50">
+                {isDownloadingCurrent ? 'Downloading...' : isCurrentDownloaded ? 'Downloaded' : 'Download Song'}
+              </span>
+            </button>
+          )}
+
+          {/* Offline Downloads Library Modal Button */}
+          {onOpenDownloads && (
+            <button
+              onClick={onOpenDownloads}
+              className="p-2 text-teal-300 hover:text-teal-200 bg-teal-500/10 hover:bg-teal-500/25 border border-teal-500/30 rounded-full transition cursor-pointer relative group"
+              title="Open Offline Downloads Manager"
+            >
+              <HardDrive className="w-4 h-4" />
+              <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black/90 text-[9px] font-mono-space px-2 py-0.5 rounded border border-teal-500/30 text-teal-300 opacity-0 group-hover:opacity-100 transition whitespace-nowrap pointer-events-none shadow-lg z-50">
+                Offline Library
+              </span>
+            </button>
+          )}
 
           {/* Universal Search Button */}
           {onOpenSearch && (

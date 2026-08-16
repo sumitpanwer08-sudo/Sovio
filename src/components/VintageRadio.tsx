@@ -16,7 +16,8 @@ import {
   Sun,
   Moon,
   Activity,
-  Compass
+  Compass,
+  Download
 } from 'lucide-react';
 import { soundscapeEngine } from '../services/soundscapeEngine';
 
@@ -30,6 +31,7 @@ interface VintageRadioProps {
   onOpenSearch?: () => void;
   onOpenLyrics?: () => void;
   onOpenMoodScheduler?: () => void;
+  onOpenDownloads?: () => void;
   atmosphere?: AtmosphereMode;
   isAutoSync?: boolean;
 }
@@ -44,6 +46,7 @@ export const VintageRadio: React.FC<VintageRadioProps> = ({
   onOpenSearch,
   onOpenLyrics,
   onOpenMoodScheduler,
+  onOpenDownloads,
   atmosphere = 'mist',
   isAutoSync = true
 }) => {
@@ -248,6 +251,17 @@ export const VintageRadio: React.FC<VintageRadioProps> = ({
           >
             <Search className="w-3.5 h-3.5 text-amber-400" />
             <span>Search Library</span>
+          </button>
+        )}
+
+        {onOpenDownloads && (
+          <button
+            onClick={onOpenDownloads}
+            className="px-3.5 py-1.5 rounded-full font-mono-space text-[10px] tracking-wider transition-all duration-300 cursor-pointer border bg-gradient-to-r from-teal-600/30 to-emerald-400/20 text-teal-300 border-teal-400/50 hover:border-teal-300 hover:shadow-[0_0_15px_rgba(45,212,191,0.3)] flex items-center gap-1.5 font-semibold"
+            title="Open Offline Downloads Manager"
+          >
+            <Download className="w-3.5 h-3.5 text-teal-400" />
+            <span>📥 Downloads</span>
           </button>
         )}
 

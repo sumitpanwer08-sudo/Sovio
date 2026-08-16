@@ -10,6 +10,7 @@ import { SongSearchModal } from './components/SongSearchModal';
 import { SongTimeAdjustModal } from './components/SongTimeAdjustModal';
 import { LyricsOverlay } from './components/LyricsOverlay';
 import { MoodSchedulerModal, getMoodInfoForTime } from './components/MoodSchedulerModal';
+import { DownloadsModal } from './components/DownloadsModal';
 import {
   RADIO_STATIONS,
   PAHADI_QUOTES,
@@ -26,6 +27,11 @@ import {
 import { soundscapeEngine } from './services/soundscapeEngine';
 import { getStoredToken, saveMemoryToDrive } from './services/driveService';
 import { getJioSaavnTrending, getJioSaavnStreamCandidates, deduplicateSongs } from './services/jiosaavnService';
+import {
+  downloadSongForOffline,
+  downloadSongToDevice,
+  isSongDownloaded
+} from './services/offlineStorageService';
 import { webAudioVisualizerService } from './services/webAudioVisualizer';
 import {
   startBackgroundAudioKeepAlive,
@@ -87,6 +93,24 @@ export function App() {
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [isTimeAdjustOpen, setIsTimeAdjustOpen] = useState<boolean>(false);
   const [isLyricsOpen, setIsLyricsOpen] = useState<boolean>(false);
+  const [isDownloadsOpen, setIsDownloadsOpen] = useState<boolean>(false);
+  const [isDownloadingCurrent, setIsDownloadingCurrent] = useState<boolean>(false);
+  const [isCurrentDownloaded, setIsCurrentDownloaded] = useState<boolean>(false);
+
+  // Check if current song is already downloaded
+  useEffect(() => {
+    let isMounted = true;
+    if (currentSong?.id) {
+      isSongDownloaded(currentSong.id).then((downloaded) => {
+        if (isMounted) setIsCurrentDownloaded(downloaded);
+      });
+    } else {
+      setIsCurrentDownloaded(false);
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [currentSong?.id]);
 
   // Google Drive token
   const [driveToken, setDriveToken] = useState<string | null>(getStoredToken());

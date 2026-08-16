@@ -31,7 +31,14 @@ import {
 } from 'lucide-react';
 import { soundscapeEngine } from '../services/soundscapeEngine';
 import { searchJioSaavnSongs, getJioSaavnTrending, deduplicateSongs } from '../services/jiosaavnService';
-import { downloadSongForOffline, isSongDownloaded } from '../services/offlineStorageService';
+import {
+  downloadSongForOffline,
+  isSongDownloaded,
+  downloadSongToDevice,
+  getAllDownloadedSongs,
+  DownloadedSong,
+  deleteDownloadedSong
+} from '../services/offlineStorageService';
 
 interface SongSearchModalProps {
   isOpen: boolean;
@@ -67,7 +74,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
   onDirectPlayUrl
 }) => {
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'jiosaavn' | 'arijit' | 'mohit' | 'add'>('jiosaavn');
+  const [activeTab, setActiveTab] = useState<'jiosaavn' | 'arijit' | 'mohit' | 'downloads' | 'add'>('jiosaavn');
 
   // JioSaavn state
   const [jioSaavnTracks, setJioSaavnTracks] = useState<SongItem[]>([]);
@@ -75,6 +82,7 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
   const [selectedJioSaavnGenre, setSelectedJioSaavnGenre] = useState<string>('arijit');
   const [downloadingSongId, setDownloadingSongId] = useState<string | null>(null);
   const [downloadSuccessId, setDownloadSuccessId] = useState<string | null>(null);
+  const [downloadedItems, setDownloadedItems] = useState<DownloadedSong[]>([]);
 
   // Custom added songs state from localStorage
   const [customSongs, setCustomSongs] = useState<SongItem[]>(() => {
@@ -380,6 +388,27 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
             >
               <Flame className="w-3.5 h-3.5 fill-current" />
               <span>🎸 Mohit Chauhan ({MOHIT_CHAUHAN_PLAYLIST.length})</span>
+            </button>
+
+            {/* Offline Downloads Tab */}
+            <button
+              onClick={async () => {
+                soundscapeEngine.playButtonClick();
+                setActiveTab('downloads');
+                try {
+                  const dl = await getAllDownloadedSongs();
+                  setDownloadedItems(dl);
+                } catch (e) {}
+              }}
+              className={`px-3 py-1.5 rounded-xl font-mono-space text-xs transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap border ${
+                activeTab === 'downloads'
+                  ? 'bg-teal-400 text-black font-bold border-teal-300 shadow-[0_0_12px_rgba(45,212,191,0.4)]'
+                  : 'bg-black/40 text-teal-300 border-teal-500/30 hover:bg-teal-500/15'
+              }`}
+              title="View and play all downloaded songs offline"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>📥 Downloads {downloadedItems.length > 0 ? `(${downloadedItems.length})` : ''}</span>
             </button>
 
             {/* Add Custom Tab */}
@@ -854,6 +883,151 @@ export const SongSearchModal: React.FC<SongSearchModalProps> = ({
                             )}
                           </button>
                         )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* --- TAB CONTENT: OFFLINE DOWNLOADS --- */}
+        {activeTab === 'downloads' && (
+          <div className="flex-1 flex flex-col min-h-0 p-3 sm:p-5">
+            <div className="mb-3.5 p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-teal-950/50 via-[#0d1d1f] to-black/60 border border-teal-500/30 flex flex-wrap items-center justify-between gap-3 flex-shrink-0 animate-fadeIn">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-teal-500/20 text-teal-300 border border-teal-500/40 flex-shrink-0">
+                  <Download className="w-6 h-6 animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="font-garamond text-base sm:text-lg font-bold text-teal-200 flex items-center gap-2">
+                    <span>Offline Stored Music</span>
+                    <span className="text-[10px] font-mono-space text-teal-300 font-normal px-2 py-0.5 rounded-full bg-teal-500/20 border border-teal-500/30">
+                      {downloadedItems.length} Songs Downloaded
+                    </span>
+                  </h3>
+                  <p className="font-mono-space text-[11px] text-white/60">
+                    All these songs are stored offline on your device and can be played with zero internet.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={async () => {
+                  const dl = await getAllDownloadedSongs();
+                  setDownloadedItems(dl);
+                }}
+                className="px-3 py-1.5 rounded-xl bg-teal-500/20 hover:bg-teal-500/30 text-teal-200 font-mono-space text-xs border border-teal-500/30 transition cursor-pointer flex items-center gap-1.5"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Refresh</span>
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto pr-1 space-y-2">
+              {downloadedItems.length === 0 ? (
+                <div className="h-60 flex flex-col items-center justify-center text-center p-6 bg-white/[0.02] border border-white/5 rounded-2xl">
+                  <Download className="w-10 h-10 text-teal-400/50 mb-2" />
+                  <h4 className="font-garamond text-lg font-bold text-white mb-1">No Offline Downloads Yet</h4>
+                  <p className="font-mono-space text-xs text-white/50 max-w-sm mb-3">
+                    Click the download icon on any JioSaavn or Bollywood song to save it for offline listening!
+                  </p>
+                  <button
+                    onClick={() => setActiveTab('jiosaavn')}
+                    className="px-4 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-mono-space transition"
+                  >
+                    Browse JioSaavn Songs
+                  </button>
+                </div>
+              ) : (
+                downloadedItems.map((item) => {
+                  const isCurrent = currentSongId === item.id;
+                  const playableSong: SongItem = {
+                    ...item.song,
+                    audioFileUrl: item.audioUrl || item.song.audioFileUrl,
+                    isOffline: true
+                  };
+
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => onPlaySong(playableSong)}
+                      className={`p-3 rounded-2xl border transition-all duration-200 flex items-center justify-between gap-3 cursor-pointer group ${
+                        isCurrent
+                          ? 'bg-teal-500/20 border-teal-400/80 shadow-[0_0_15px_rgba(45,212,191,0.2)]'
+                          : 'bg-[#101b19]/60 hover:bg-[#152320] border-white/10 hover:border-teal-500/30'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="w-11 h-11 rounded-xl bg-black/40 border border-white/10 overflow-hidden flex-shrink-0 flex items-center justify-center relative group-hover:border-teal-400/50">
+                          {item.song.imageUrl ? (
+                            <img
+                              src={item.song.imageUrl}
+                              alt={item.song.title}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <Music className="w-5 h-5 text-teal-400/70" />
+                          )}
+                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                            <Play className="w-5 h-5 text-white fill-current ml-0.5" />
+                          </div>
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-garamond text-base font-bold text-white truncate group-hover:text-teal-300 transition">
+                              {item.song.title}
+                            </h4>
+                            <span className="text-[9px] font-mono-space px-1.5 py-0.5 rounded bg-teal-950 text-teal-300 border border-teal-500/30 flex-shrink-0">
+                              Offline Ready
+                            </span>
+                          </div>
+                          <p className="font-mono-space text-xs text-white/50 truncate">
+                            {item.song.artist || 'Pahadi Artist'} • {item.song.movie || 'Melody'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        {/* Play button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onPlaySong(playableSong);
+                          }}
+                          className="p-2 rounded-full bg-teal-500/20 hover:bg-teal-500 text-teal-300 hover:text-black transition cursor-pointer"
+                          title="Play Offline"
+                        >
+                          <Play className="w-4 h-4 ml-0.5" />
+                        </button>
+
+                        {/* Save to Device */}
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            await downloadSongToDevice(playableSong);
+                          }}
+                          className="p-2 rounded-full bg-white/5 hover:bg-amber-500/20 text-white/70 hover:text-amber-300 border border-white/10 transition cursor-pointer"
+                          title="Save audio file to phone/PC"
+                        >
+                          <FolderDown className="w-4 h-4" />
+                        </button>
+
+                        {/* Delete */}
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            await deleteDownloadedSong(item.id);
+                            const updated = await getAllDownloadedSongs();
+                            setDownloadedItems(updated);
+                          }}
+                          className="p-2 rounded-full bg-white/5 hover:bg-red-500/20 text-white/40 hover:text-red-400 border border-white/10 transition cursor-pointer"
+                          title="Delete from offline storage"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
                   );

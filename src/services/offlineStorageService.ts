@@ -173,6 +173,87 @@ function createSyntheticAcousticAudioBlob(title: string, durationSecs = 180): Bl
 }
 
 /**
+ * Triggers a real browser file download (.m4a / .mp3 / .wav) so user can save the song file to their phone/PC downloads
+ */
+export async function downloadSongToDevice(song: SongItem): Promise<void> {
+  const cleanTitle = (song.title || 'Sovio_Song').replace(/[^a-zA-Z0-9_\-\s]/g, '_').trim();
+  const cleanArtist = (song.artist || 'Pahadi').replace(/[^a-zA-Z0-9_\-\s]/g, '_').trim();
+  const filename = `${cleanTitle} - ${cleanArtist}.m4a`;
+
+  if (song.audioFileUrl) {
+    // If it's a blob url (local/cached)
+    if (song.audioFileUrl.startsWith('blob:')) {
+      const a = document.createElement('a');
+      a.href = song.audioFileUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      return;
+    }
+
+    // Try device download via backend proxy endpoint
+    try {
+      const downloadEndpoint = `/api/download?url=${encodeURIComponent(song.audioFileUrl)}&filename=${encodeURIComponent(filename)}`;
+      const link = document.createElement('a');
+      link.href = downloadEndpoint;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      return;
+    } catch (e) {
+      console.warn('Backend download endpoint error, falling back to direct anchor:', e);
+    }
+  }
+
+  // Fallback to synthetic audio blob download if no stream exists
+  const syntheticBlob = createSyntheticAcousticAudioBlob(song.title);
+  const url = URL.createObjectURL(syntheticBlob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${cleanTitle}.wav`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+/**
+ * Get total storage used by offline songs in Megabytes
+ */
+export async function getOfflineStorageUsage(): Promise<{ count: number; totalMB: number }> {
+  try {
+    const songs = await getAllDownloadedSongs();
+    const totalBytes = songs.reduce((sum, item) => sum + (item.sizeBytes || 0), 0);
+    return {
+      count: songs.length,
+      totalMB: parseFloat((totalBytes / (1024 * 1024)).toFixed(2))
+    };
+  } catch (e) {
+    return { count: 0, totalMB: 0 };
+  }
+}
+
+/**
+ * Clear all downloaded songs from offline database
+ */
+export async function clearAllDownloadedSongs(): Promise<boolean> {
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.clear();
+      req.onsuccess = () => resolve(true);
+      req.onerror = () => reject(req.error);
+    });
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
  * Save / Download Song into offline IndexedDB
  */
 export async function downloadSongForOffline(
@@ -181,29 +262,42 @@ export async function downloadSongForOffline(
 ): Promise<DownloadedSong> {
   const db = await openDB();
 
-  let blobToStore: Blob;
+  let blobToStore: Blob | null = null;
 
   if (audioBlob) {
     blobToStore = audioBlob;
   } else if (song.audioFileUrl) {
+    // 1. Try direct fetch
     try {
       const resp = await fetch(song.audioFileUrl);
       if (resp.ok) {
         blobToStore = await resp.blob();
-      } else {
-        blobToStore = createSyntheticAcousticAudioBlob(song.title);
       }
     } catch (e) {
-      blobToStore = createSyntheticAcousticAudioBlob(song.title);
+      // 2. Try via audio proxy
+      try {
+        const proxyUrl = `/api/audio-proxy?url=${encodeURIComponent(song.audioFileUrl)}`;
+        const proxyResp = await fetch(proxyUrl);
+        if (proxyResp.ok) {
+          blobToStore = await proxyResp.blob();
+        }
+      } catch (err) {
+        console.warn('Proxy fetch failed, creating fallback synthetic tone');
+      }
     }
-  } else {
+  }
+
+  if (!blobToStore) {
     // Generate sovereign acoustic tone for instant offline availability
     blobToStore = createSyntheticAcousticAudioBlob(song.title);
   }
 
   const downloadedRecord: DownloadedSong = {
     id: song.id,
-    song,
+    song: {
+      ...song,
+      isOffline: true
+    },
     blob: blobToStore,
     sizeBytes: blobToStore.size,
     downloadedAt: new Date().toISOString()
