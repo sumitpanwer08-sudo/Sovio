@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { TopNavHeader } from './components/TopNavHeader';
+import { ProfessionalMusicDashboard } from './components/ProfessionalMusicDashboard';
 import { VintageRadio } from './components/VintageRadio';
 import { PlayerBar } from './components/PlayerBar';
 import { AmbientMixerModal } from './components/AmbientMixerModal';
@@ -80,6 +82,9 @@ export function App() {
     }, 4500);
   };
   
+  // Top Nav active tab state
+  const [activeTab, setActiveTab] = useState<'stations' | 'discover' | 'downloads' | 'soundscape' | 'ticket'>('stations');
+
   // Mood & Atmosphere state (defaults to current time of day)
   const [atmosphere, setAtmosphere] = useState<AtmosphereMode>(() => getMoodInfoForTime().atmosphere);
   const [isAutoSyncAtmosphere, setIsAutoSyncAtmosphere] = useState<boolean>(true);
@@ -857,8 +862,32 @@ export function App() {
     }
   };
 
+  // Download current song (Saves to offline database and device file storage)
+  const handleDownloadCurrentSong = async () => {
+    if (!currentSong) return;
+    setIsDownloadingCurrent(true);
+    soundscapeEngine.playButtonClick();
+    try {
+      // 1. Cache to IndexedDB for zero-internet playback
+      await downloadSongForOffline(currentSong);
+      setIsCurrentDownloaded(true);
+
+      // 2. Trigger browser download to device phone/PC downloads folder
+      await downloadSongToDevice(currentSong);
+
+      setPlaybackNotice(`"${currentSong.title}" saved to Offline Library & Device Downloads!`);
+      setTimeout(() => setPlaybackNotice(null), 4000);
+    } catch (err: any) {
+      console.error('Download error:', err?.message || String(err));
+      setPlaybackNotice('Download error, please try again.');
+      setTimeout(() => setPlaybackNotice(null), 3000);
+    } finally {
+      setIsDownloadingCurrent(false);
+    }
+  };
+
   return (
-    <div className="relative min-h-screen w-full overflow-x-hidden flex flex-col justify-center items-center py-10 select-none">
+    <div className="relative min-h-screen w-full overflow-x-hidden flex flex-col justify-start items-center pb-28 select-none">
       
       {/* Background Scenery & Live Atmosphere */}
       <SceneryBackground
@@ -869,19 +898,62 @@ export function App() {
         isAutoSync={isAutoSyncAtmosphere}
       />
 
-      {/* Main Stage: High-Fidelity Vintage Pahadi Radio Console */}
-      <VintageRadio
+      {/* Top Professional Navigation Header */}
+      <TopNavHeader
+        activeTab={activeTab}
+        onSelectTab={(tab) => {
+          setActiveTab(tab);
+          if (tab === 'discover') setIsSearchOpen(true);
+          else if (tab === 'downloads') setIsDownloadsOpen(true);
+          else if (tab === 'soundscape') setIsMixerOpen(true);
+          else if (tab === 'ticket') setIsTicketOpen(true);
+        }}
+        onOpenSearch={() => setIsSearchOpen(true)}
+        onOpenLyrics={() => setIsLyricsOpen(true)}
+        onOpenMoodScheduler={() => setIsMoodSchedulerOpen(true)}
+        onOpenRj={() => setIsRjOpen(true)}
+        atmosphere={atmosphere}
+        isPlaying={isPlaying}
+      />
+
+      {/* Professional Music Studio Dashboard */}
+      <ProfessionalMusicDashboard
+        activeTab={activeTab}
+        onSelectTab={(tab) => {
+          setActiveTab(tab);
+          if (tab === 'discover') setIsSearchOpen(true);
+          else if (tab === 'downloads') setIsDownloadsOpen(true);
+          else if (tab === 'soundscape') setIsMixerOpen(true);
+          else if (tab === 'ticket') setIsTicketOpen(true);
+        }}
         currentStation={currentStation}
+        currentSong={currentSong}
         isPlaying={isPlaying}
         onTogglePlay={togglePlay}
         onSelectStation={handleSelectStation}
         stations={RADIO_STATIONS}
-        quoteText={currentQuote}
+        onPlaySong={handlePlaySong}
+        onNextTrack={nextTrack}
+        onPrevTrack={prevTrack}
+        onDownloadCurrentSong={handleDownloadCurrentSong}
+        isDownloadingCurrent={isDownloadingCurrent}
+        isCurrentDownloaded={isCurrentDownloaded}
         onOpenSearch={() => setIsSearchOpen(true)}
         onOpenLyrics={() => setIsLyricsOpen(true)}
         onOpenMoodScheduler={() => setIsMoodSchedulerOpen(true)}
+        onOpenDownloads={() => setIsDownloadsOpen(true)}
+        onOpenTimeAdjust={() => setIsTimeAdjustOpen(true)}
+        quoteText={currentQuote}
+        currentTime={currentTime}
+        duration={duration}
+        progressPercent={progressPercent}
+        onSeek={handleSeek}
         atmosphere={atmosphere}
-        isAutoSync={isAutoSyncAtmosphere}
+        ambientSounds={ambientSounds}
+        onSoundChange={handleSoundChange}
+        ticket={ticket}
+        onOpenTicket={() => setIsTicketOpen(true)}
+        trendingSongs={ALL_SONGS_CATALOG}
       />
 
       {/* Floating Bottom Studio Player Bar */}
@@ -909,6 +981,10 @@ export function App() {
         onOpenSearch={() => setIsSearchOpen(true)}
         onOpenLyrics={() => setIsLyricsOpen(true)}
         onOpenMoodScheduler={() => setIsMoodSchedulerOpen(true)}
+        onOpenDownloads={() => setIsDownloadsOpen(true)}
+        onDownloadCurrentSong={handleDownloadCurrentSong}
+        isDownloadingCurrent={isDownloadingCurrent}
+        isCurrentDownloaded={isCurrentDownloaded}
         atmosphere={atmosphere}
         isAutoSync={isAutoSyncAtmosphere}
       />
@@ -1002,6 +1078,15 @@ export function App() {
         onClose={() => setIsDriveOpen(false)}
         token={driveToken}
         onTokenReceived={setDriveToken}
+      />
+
+      {/* Offline Music Downloads Modal */}
+      <DownloadsModal
+        isOpen={isDownloadsOpen}
+        onClose={() => setIsDownloadsOpen(false)}
+        currentSongId={currentSong?.id}
+        isPlaying={isPlaying}
+        onPlaySong={handlePlaySong}
       />
 
       {/* Dedicated Invisible Audio Engine (Kept active in viewport with negative z-index to prevent browser throttle) */}
